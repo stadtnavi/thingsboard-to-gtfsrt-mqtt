@@ -12,14 +12,10 @@ import gtfs_realtime_pb2
 import utils
 
 import glob
-import requests
 import os
 import datetime
 import json
-from argparse import ArgumentParser
 import time
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from functools import lru_cache
 
 class ThingsboardClient:
     def __init__(self):
