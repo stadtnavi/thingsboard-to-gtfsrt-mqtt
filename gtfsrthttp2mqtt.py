@@ -36,7 +36,7 @@ class ThingsboardClient:
         response = requests.post(token_url, json=payload)
         return response.json()["token"]
 
-    def fetch_timeseries(id, token):
+    def fetch_timeseries(self, id, token):
         auth_headers = {
             "X-Authorization": f"Bearer {token}"
         }
@@ -45,7 +45,24 @@ class ThingsboardClient:
 
     def get_vehicles(self):
         token = self.get_token()
-        return [{ "latitude": 48, "longitude": 8, "id": "vehicle-1" }]
+        ids = [
+            '17e40b70-5b04-11eb-98a5-133ebfea8661',
+            '66df3b20-5b02-11eb-98a5-133ebfea8661',
+            '14341fa0-5b00-11eb-98a5-133ebfea8661',
+            'fef36ff0-5afb-11eb-98a5-133ebfea8661'
+        ]
+        vehicles = []
+        for id in ids:
+            timeseries = self.fetch_timeseries(id, token)
+            lat = float(timeseries["latitude"][0]["value"])
+            lon = float(timeseries["longitude"][0]["value"])
+            vehicle = {
+                "id": id,
+                "latitude" : lat,
+                "longitude" : lon
+            }
+            vehicles.append(vehicle)
+        return vehicles
 
 ## https://stackoverflow.com/questions/22498038/improve-current-implementation-of-a-setinterval-python/22498708#22498708
 def call_repeatedly(interval, func, *args):
