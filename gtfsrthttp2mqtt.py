@@ -125,10 +125,13 @@ class GTFSRTHTTP2MQTTTransformer:
             ent = nfeedmsg.entity.add()
 
             ent.id = vehicle["id"]
+            trip = ent.vehicle.trip.trip_id = "unknown-trip-id"
             ent.vehicle.position.latitude = vehicle['latitude']
             ent.vehicle.position.longitude = vehicle['longitude']
+            ent.vehicle.vehicle.id = vehicle['id']
 
-            full_topic = f'{ self.baseMqttTopic }/vp/busses/{ vehicle["id"] }'
+            # /gtfsrt/vp/<feed_Id>/<agency_id>/<agency_name>/<mode>/<route_id>/<direction_id>/<trip_headsign>/<trip_id>/<next_stop>/<start_time>/<vehicle_id>/<geo_hash>/<short_name>
+            full_topic = f'{ self.baseMqttTopic }/vp/hb/1/1/1/route/0/unknown-headsign/unknown-trip-id/unknown-next-stop/00:00/{ vehicle["id"] }/0/0'
 
             print(full_topic)
 
