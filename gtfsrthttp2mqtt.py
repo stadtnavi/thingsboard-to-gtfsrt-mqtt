@@ -1,5 +1,6 @@
 import time
 import os
+import threading
 from threading import Event, Thread
 
 import ssl
@@ -11,11 +12,7 @@ from requests.packages.urllib3.util.retry import Retry
 import gtfs_realtime_pb2
 import utils
 
-import glob
-import os
-import datetime
-import json
-import time
+import os, sys, datetime, json, time
 
 class ThingsboardClient:
     def __init__(self):
@@ -60,6 +57,10 @@ class ThingsboardClient:
             vehicles.append(vehicle)
         return vehicles
 
+def exception_hook(exctype):
+    print(exctype.exc_value)
+    os._exit(1)
+
 ## https://stackoverflow.com/questions/22498038/improve-current-implementation-of-a-setinterval-python/22498708#22498708
 def call_repeatedly(interval, func, *args):
     stopped = Event()
@@ -69,7 +70,8 @@ def call_repeatedly(interval, func, *args):
             func(*args)
         print("Polling stopped")
 
-    Thread(target=loop, daemon=False).start()
+    threading.excepthook = exception_hook
+    Thread(target=loop, daemon=True).start()
     return stopped.set
 
 
@@ -79,9 +81,7 @@ class GTFSRTHTTP2MQTTTransformer:
         self.mqttCredentials = mqttCredentials
         self.baseMqttTopic = baseMqttTopic
         self.mqttConnected = False
-        self.session = requests.Session()
-        retry = Retry(connect=60, backoff_factor=1.5)
-        adapter = HTTPAdapter(max_retries=retry)
+        print("Connecting to MQTT")
 
     def onMQTTConnected(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
