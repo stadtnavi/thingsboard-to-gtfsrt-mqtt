@@ -17,6 +17,7 @@ import os, sys, datetime, json, time
 class ThingsboardClient:
     def __init__(self):
         self.base_url = os.environ['THINGSBOARD_HOST']
+        self.data = []
 
     def get_token(self):
         token_url = f"{self.base_url}/auth/login"
@@ -36,7 +37,7 @@ class ThingsboardClient:
         timeseries_url = f"{self.base_url}/plugins/telemetry/DEVICE/{id}/values/timeseries"
         return requests.get(timeseries_url, headers=auth_headers).json()
 
-    def get_vehicles(self):
+    def fetch_vehicle_data(self):
         token = self.get_token()
         ids = [
             '17e40b70-5b04-11eb-98a5-133ebfea8661',
@@ -55,7 +56,13 @@ class ThingsboardClient:
                 "longitude" : lon
             }
             vehicles.append(vehicle)
-        return vehicles
+        print("Fetched vehicle data from thingsboard")
+        self.data = vehicles
+
+    def get_vehicles(self):
+        return self.data
+
+thingsboard_client = ThingsboardClient()
 
 def exception_hook(exctype):
     print(exctype.exc_value)
@@ -76,10 +83,9 @@ def call_repeatedly(interval, func, *args):
 
 
 class GTFSRTHTTP2MQTTTransformer:
-    def __init__(self, mqttConnect, mqttCredentials, baseMqttTopic):
+    def __init__(self, mqttConnect, mqttCredentials):
         self.mqttConnect = mqttConnect
         self.mqttCredentials = mqttCredentials
-        self.baseMqttTopic = baseMqttTopic
         self.mqttConnected = False
         print("Connecting to MQTT")
 
@@ -89,7 +95,7 @@ class GTFSRTHTTP2MQTTTransformer:
             return False
         if self.mqttConnected is True:
             print("Reconnecting and restarting poller")
-            self.GTFSRTPoller()
+            self.ThingsboardPoller()
         self.mqttConnected = True
         self.startThingsboardPolling()
 
@@ -101,15 +107,17 @@ class GTFSRTHTTP2MQTTTransformer:
         self.client.connect(**self.mqttConnect)
         self.client.loop_forever()
 
+    def update_thingsboard(self):
+        thingsboard_client.fetch_vehicle_data()
+
     def startThingsboardPolling(self):
-        print("Starting GTFS RT poller")
-        polling_interval = int(os.environ.get('INTERVAL', 1))
-        self.GTFSRTPoller = call_repeatedly(polling_interval, self.doThingsboardPolling)
+        print("Starting Thingsboard poller")
+        thingsboard_client.fetch_vehicle_data()
+        call_repeatedly(15, self.update_thingsboard)
+        self.ThingsboardPoller = call_repeatedly(1, self.publish_to_mqtt)
 
-    def doThingsboardPolling(self):
-        print("doThingsboardPolling", time.ctime())
+    def publish_to_mqtt(self):
 
-        thingsboard_client = ThingsboardClient()
         vehicles = thingsboard_client.get_vehicles()
 
         for vehicle in vehicles:
@@ -127,9 +135,7 @@ class GTFSRTHTTP2MQTTTransformer:
             ent.vehicle.vehicle.id = vehicle['id']
 
             # /gtfsrt/vp/<feed_Id>/<agency_id>/<agency_name>/<mode>/<route_id>/<direction_id>/<trip_headsign>/<trip_id>/<next_stop>/<start_time>/<vehicle_id>/<geo_hash>/<short_name>
-            full_topic = f'{ self.baseMqttTopic }/vp/hb/1/1///0/unknown-headsign/unknown-trip-id/unknown-next-stop/00:00/{ vehicle["id"] }/0/0'
-
-            print(full_topic)
+            full_topic = f'/gtfsrt/vp/hb/1/1///0/unknown-headsign/unknown-trip-id/unknown-next-stop/00:00/{ vehicle["id"] }/0/0'
 
             sernmesg = nfeedmsg.SerializeToString()
             self.client.publish(full_topic, sernmesg)
@@ -137,11 +143,10 @@ class GTFSRTHTTP2MQTTTransformer:
 if __name__ == '__main__':
     gh2mt = GTFSRTHTTP2MQTTTransformer(
         {'host': os.environ['MQTT_BROKER_URL'], 'port': 8883},
-        {'username': os.environ['MQTT_USER'], 'password': os.environ['MQTT_PASSWORD'],},
-        '/gtfsrt'
+        {'username': os.environ['MQTT_USER'], 'password': os.environ['MQTT_PASSWORD'],}
     )
 
     try:
         gh2mt.connectMQTT()
     finally:
-        gh2mt.GTFSRTPoller()
+        gh2mt.ThingsboardPoller()
