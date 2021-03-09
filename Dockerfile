@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt
 COPY gtfs_realtime_pb2.py /usr/src/app/
 COPY thingsboard-to-gtfsrt-mqtt.py /usr/src/app/
 
-CMD ["python", "thingsboard-to-gtfsrt-mqtt.py" ]
+CMD ["python", "-u", "thingsboard-to-gtfsrt-mqtt.py" ]
