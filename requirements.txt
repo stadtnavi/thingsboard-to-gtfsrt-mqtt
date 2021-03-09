@@ -1,5 +1,4 @@
 certifi==2020.12.5
-chardet==3.0.4
 paho-mqtt==1.4.0
 protobuf==3.6.1
 query-string==2018.11.20
