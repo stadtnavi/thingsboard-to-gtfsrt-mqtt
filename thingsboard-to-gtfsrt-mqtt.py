@@ -9,8 +9,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+from google.protobuf.json_format import MessageToJson
 import gtfs_realtime_pb2
-import utils
 
 import os, sys, datetime, json, time
 
@@ -50,10 +50,12 @@ class ThingsboardClient:
             timeseries = self.fetch_timeseries(id, token)
             lat = float(timeseries["latitude"][0]["value"])
             lon = float(timeseries["longitude"][0]["value"])
+            pax = int(timeseries["pax"][0]["value"])
             vehicle = {
                 "id": id,
                 "latitude" : lat,
-                "longitude" : lon
+                "longitude" : lon,
+                "pax" : pax
             }
             vehicles.append(vehicle)
         print("Fetched vehicle data from thingsboard")
@@ -116,6 +118,15 @@ class GTFSRTHTTP2MQTTTransformer:
         call_repeatedly(15, self.update_thingsboard)
         self.ThingsboardPoller = call_repeatedly(1, self.publish_to_mqtt)
 
+    def calculate_occupancy(self, pax):
+        percent_full = pax / 60 * 100
+        if (percent_full < 30):
+            return "MANY_SEATS_AVAILABLE"
+        elif (percent_full < 85):
+            return "FEW_SEATS_AVAILABLE"
+        else:
+            return "STANDING_ROOM_ONLY"
+
     def publish_to_mqtt(self):
 
         vehicles = thingsboard_client.get_vehicles()
@@ -127,18 +138,27 @@ class GTFSRTHTTP2MQTTTransformer:
             nfeedmsg.header.incrementality = nfeedmsg.header.DIFFERENTIAL
             nfeedmsg.header.timestamp = int(time.time())
             ent = nfeedmsg.entity.add()
-
             ent.id = vehicle["id"]
             trip = ent.vehicle.trip.trip_id = "unknown-trip-id"
             ent.vehicle.position.latitude = vehicle['latitude']
             ent.vehicle.position.longitude = vehicle['longitude']
             ent.vehicle.vehicle.id = vehicle['id']
 
+            pax = vehicle["pax"]
+            occupancy = gtfs_realtime_pb2.VehiclePosition.OccupancyStatus.Value(self.calculate_occupancy(pax))
+            ent.vehicle.occupancy_status = occupancy
+
+            #percent_full = pax / 60 * 100
+            #ent.vehicle.occupancy_percentage = percent_full
+
             # /gtfsrt/vp/<feed_Id>/<agency_id>/<agency_name>/<mode>/<route_id>/<direction_id>/<trip_headsign>/<trip_id>/<next_stop>/<start_time>/<vehicle_id>/<geo_hash>/<short_name>
             full_topic = f'/gtfsrt/vp/hb/1/1/bus//0/unknown-headsign/unknown-trip-id/unknown-next-stop/00:00/{ vehicle["id"] }/0/0'
 
             sernmesg = nfeedmsg.SerializeToString()
             self.client.publish(full_topic, sernmesg)
+
+            json = MessageToJson(nfeedmsg)
+            self.client.publish(f'/json/vp/{vehicle["id"]}', json)
 
 if __name__ == '__main__':
     gh2mt = GTFSRTHTTP2MQTTTransformer(
