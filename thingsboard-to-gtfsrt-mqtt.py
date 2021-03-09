@@ -120,7 +120,7 @@ class GTFSRTHTTP2MQTTTransformer:
 
     def calculate_occupancy(self, pax):
         percent_full = pax / 60 * 100
-        if (percent_full < 30):
+        if (percent_full < 50):
             return "MANY_SEATS_AVAILABLE"
         elif (percent_full < 85):
             return "FEW_SEATS_AVAILABLE"
