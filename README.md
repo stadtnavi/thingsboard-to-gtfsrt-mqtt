@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/HSLdevcom/gtfsrthttp2mqtt.svg?branch=master)]
-# gtfsrthttp2mqtt
+[![Build Status](https://travis-ci.org/HSLdevcom/thingsboard-to-gtfsrt-mqtt.svg?branch=master)]
+# thingsboard-to-gtfsrt-mqtt
 
 Reads GTFS-RT feed from a http(s) source and publishes every entity to MQTT topic as its own differential GTFS-RT feed
 
