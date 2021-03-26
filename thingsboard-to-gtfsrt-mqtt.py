@@ -14,6 +14,18 @@ import gtfs_realtime_pb2
 
 import os, sys, datetime, json, time
 
+import socket
+import requests.packages.urllib3.util.connection as urllib3_cn
+
+def allowed_gai_family():
+    """
+    https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
+    """
+    family = socket.AF_INET # force IPv4
+    return family
+
+urllib3_cn.allowed_gai_family = allowed_gai_family
+
 class ThingsboardClient:
     def __init__(self):
         self.base_url = os.environ['THINGSBOARD_HOST']
