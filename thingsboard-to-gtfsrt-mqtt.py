@@ -105,17 +105,17 @@ class GTFSRTHTTP2MQTTTransformer:
         self.mqttConnect = mqttConnect
         self.mqttCredentials = mqttCredentials
         self.mqttConnected = False
+        self.startThingsboardPolling()
         print("Connecting to MQTT")
 
     def onMQTTConnected(self, client, userdata, flags, rc):
         print("Connected with result code " + str(rc))
         if rc != 0:
+            sys.exit(1)
             return False
         if self.mqttConnected is True:
             print("Reconnecting and restarting poller")
-            self.ThingsboardPoller()
         self.mqttConnected = True
-        self.startThingsboardPolling()
 
     def connectMQTT(self):
         self.client = mqtt.Client()
