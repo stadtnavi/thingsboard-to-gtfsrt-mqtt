@@ -84,6 +84,10 @@ def call_repeatedly(interval, func, *args):
     return stopped.set
 
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 class GTFSRTHTTP2MQTTTransformer:
     def __init__(self, mqttConnect, mqttCredentials):
         self.mqttConnect = mqttConnect
@@ -103,8 +107,11 @@ class GTFSRTHTTP2MQTTTransformer:
 
     def connectMQTT(self):
         self.client = mqtt.Client()
+        self.client.enable_logger(logger)
+
         self.client.on_connect = self.onMQTTConnected
         self.client.tls_set(cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS)
+
         self.client.username_pw_set(**self.mqttCredentials)
         self.client.connect(**self.mqttConnect)
         self.client.loop_forever()
