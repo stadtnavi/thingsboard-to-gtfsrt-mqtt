@@ -173,7 +173,4 @@ if __name__ == '__main__':
         {'username': os.environ['MQTT_USER'], 'password': os.environ['MQTT_PASSWORD'],}
     )
 
-    try:
-        gh2mt.connectMQTT()
-    finally:
-        gh2mt.ThingsboardPoller()
+    gh2mt.connectMQTT()
