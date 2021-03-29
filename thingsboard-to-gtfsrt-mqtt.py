@@ -1,6 +1,4 @@
-import time
-import os
-import threading
+import os, sys, datetime, json, time, threading
 from threading import Event, Thread
 
 import ssl
@@ -11,20 +9,12 @@ from requests.packages.urllib3.util.retry import Retry
 
 from google.protobuf.json_format import MessageToJson
 import gtfs_realtime_pb2
+import logging
 
-import os, sys, datetime, json, time
+if(os.getenv("LOG_LEVEL") == "DEBUG"):
+    logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-import socket
-import requests.packages.urllib3.util.connection as urllib3_cn
-
-def allowed_gai_family():
-    """
-    https://github.com/shazow/urllib3/blob/master/urllib3/util/connection.py
-    """
-    family = socket.AF_INET # force IPv4
-    return family
-
-urllib3_cn.allowed_gai_family = allowed_gai_family
 
 class ThingsboardClient:
     def __init__(self):
@@ -95,10 +85,6 @@ def call_repeatedly(interval, func, *args):
     Thread(target=loop, daemon=True).start()
     return stopped.set
 
-
-import logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 class GTFSRTHTTP2MQTTTransformer:
     def __init__(self, mqttConnect, mqttCredentials):
