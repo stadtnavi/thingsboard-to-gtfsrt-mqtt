@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 class ThingsboardClient:
     def __init__(self):
         self.base_url = os.environ['THINGSBOARD_HOST']
+        self.session = requests.Session()
+        retries = Retry(total=4, backoff_factor=1, status_forcelist=[ 502, 503, 504 ])
+        self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.data = []
 
     def get_token(self):
@@ -29,7 +32,7 @@ class ThingsboardClient:
             "password": os.environ['THINGSBOARD_PASSWORD']
         }
 
-        response = requests.post(token_url, json=payload)
+        response = self.session.post(token_url, json=payload)
         return response.json()["token"]
 
     def fetch_timeseries(self, id, token):
@@ -37,7 +40,7 @@ class ThingsboardClient:
             "X-Authorization": f"Bearer {token}"
         }
         timeseries_url = f"{self.base_url}/plugins/telemetry/DEVICE/{id}/values/timeseries"
-        return requests.get(timeseries_url, headers=auth_headers).json()
+        return self.session.get(timeseries_url, headers=auth_headers).json()
 
     def fetch_vehicle_data(self):
         token = self.get_token()
