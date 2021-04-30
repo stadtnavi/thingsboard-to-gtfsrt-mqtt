@@ -10,6 +10,7 @@ from requests.packages.urllib3.util.retry import Retry
 from google.protobuf.json_format import MessageToJson
 import gtfs_realtime_pb2
 import logging
+from planar import Vec2, BoundingBox
 
 if(os.getenv("LOG_LEVEL") == "DEBUG"):
     logging.basicConfig(level=logging.DEBUG)
@@ -23,6 +24,14 @@ class ThingsboardClient:
         retries = Retry(total=4, backoff_factor=1, status_forcelist=[ 502, 503, 504 ])
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.data = []
+        self.bus_depot = BoundingBox([
+            Vec2(48.64906, 8.81657),
+            Vec2(48.6490, 8.81781),
+            Vec2(48.64859, 8.81799),
+            Vec2(48.64848, 8.81683),
+            ]
+        )
+        print(self.bus_depot)
 
     def get_token(self):
         token_url = f"{self.base_url}/auth/login"
@@ -62,7 +71,14 @@ class ThingsboardClient:
                 "longitude" : lon,
                 "pax" : pax
             }
-            vehicles.append(vehicle)
+
+            point = Vec2(lat, lon)
+            if not self.bus_depot.contains_point(point):
+                vehicles.append(vehicle)
+
+            else:
+                print(f"Vehicle at location {point} is at bus depot. Not sending update.")
+
         print("Fetched vehicle data from thingsboard")
         self.data = vehicles
 
