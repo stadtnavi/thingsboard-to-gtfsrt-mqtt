@@ -25,10 +25,8 @@ class ThingsboardClient:
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.data = []
         self.bus_depot = BoundingBox([
-            Vec2(48.64906, 8.81657),
-            Vec2(48.6490, 8.81781),
-            Vec2(48.64859, 8.81799),
-            Vec2(48.64848, 8.81683),
+            Vec2(48.64936, 8.81578),
+            Vec2(48.64853, 8.81885)
             ]
         )
         print(self.bus_depot)
