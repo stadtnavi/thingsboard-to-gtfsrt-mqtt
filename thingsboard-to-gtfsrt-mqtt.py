@@ -50,8 +50,8 @@ class ThingsboardClient:
         resp = self.session.get(timeseries_url, headers=auth_headers)
         if(resp.status_code == 200):
             return resp.json()
-            print(f"Data for device {id} could not be fetched")
         else:
+            print(f"Data for device {id} could not be fetched")
             return None
 
     def fetch_vehicle_data(self):
