@@ -47,7 +47,12 @@ class ThingsboardClient:
             "X-Authorization": f"Bearer {token}"
         }
         timeseries_url = f"{self.base_url}/plugins/telemetry/DEVICE/{id}/values/timeseries"
-        return self.session.get(timeseries_url, headers=auth_headers).json()
+        resp = self.session.get(timeseries_url, headers=auth_headers)
+        if(resp.status_code == 200):
+            return resp.json()
+            print(f"Data for device {id} could not be fetched")
+        else:
+            return None
 
     def fetch_vehicle_data(self):
         token = self.get_token()
@@ -60,22 +65,24 @@ class ThingsboardClient:
         vehicles = []
         for id in ids:
             timeseries = self.fetch_timeseries(id, token)
-            lat = float(timeseries["latitude"][0]["value"])
-            lon = float(timeseries["longitude"][0]["value"])
-            pax = int(timeseries["pax"][0]["value"])
-            vehicle = {
-                "id": id,
-                "latitude" : lat,
-                "longitude" : lon,
-                "pax" : pax
-            }
+            if(timeseries != None):
 
-            point = Vec2(lat, lon)
-            if not self.bus_depot.contains_point(point):
-                vehicles.append(vehicle)
+                lat = float(timeseries["latitude"][0]["value"])
+                lon = float(timeseries["longitude"][0]["value"])
+                pax = int(timeseries["pax"][0]["value"])
+                vehicle = {
+                    "id": id,
+                    "latitude" : lat,
+                    "longitude" : lon,
+                    "pax" : pax
+                }
 
-            else:
-                print(f"Vehicle at location {point} is at bus depot. Not sending update.")
+                point = Vec2(lat, lon)
+                if not self.bus_depot.contains_point(point):
+                    vehicles.append(vehicle)
+
+                else:
+                    print(f"Vehicle at location {point} is at bus depot. Not sending update.")
 
         print("Fetched vehicle data from thingsboard")
         self.data = vehicles
